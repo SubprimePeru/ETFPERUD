@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETFPERUD · Mapa de Calor YTD 2026</title>
+<style>
+:root {
+  --bg: #f0e8d4;
+  --ink: #1a140d;
+  --ink-soft: #5a4a32;
+  --gold: #c49a2e;
+  --gold-light: #e0b84a;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 5% 10%, rgba(196,154,46,0.13) 0%, transparent 40%),
+    radial-gradient(ellipse at 95% 90%, rgba(196,154,46,0.09) 0%, transparent 40%);
+  font-family: 'Cambria', Georgia, 'Times New Roman', serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 38px 28px 48px;
+}
+
+.wrapper { width:100%; max-width:1240px; }
+
+/* ── HEADER ── */
+.header {
+  text-align: center;
+  margin-bottom: 6px;
+  animation: fadeDown 0.7s ease both;
+}
+.eyebrow {
+  font-size: 0.66rem; letter-spacing: 0.32em; text-transform: uppercase;
+  color: var(--gold); font-weight: 700; margin-bottom: 10px;
+}
+.header h1 {
+  font-size: 2.7rem; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; line-height: 1;
+}
+.header h1 em { font-style: italic; color: var(--gold); }
+.sub {
+  font-size: 0.72rem; color: var(--ink-soft); letter-spacing: 0.2em;
+  text-transform: uppercase; margin-top: 7px;
+}
+.rule-full {
+  width:100%; height:1px;
+  background: linear-gradient(90deg, transparent, var(--gold) 25%, var(--gold) 75%, transparent);
+  margin: 14px 0; opacity: 0.5;
+}
+
+/* ── ETF PILL ── */
+.etf-row {
+  display: flex; justify-content: center;
+  margin-bottom: 26px;
+  animation: fadeDown 0.7s 0.08s ease both;
+}
+.etf-pill {
+  display: flex; align-items: center; gap: 22px;
+  background: #1a140d; color: #f5eed8;
+  border-radius: 60px; padding: 14px 36px;
+  border: 1px solid rgba(196,154,46,0.4);
+  box-shadow: 0 6px 30px rgba(26,20,13,0.25), 0 0 0 4px rgba(196,154,46,0.07);
+}
+.pill-divider { width:1px; height:38px; background:rgba(255,255,255,0.15); }
+.pill-label   { font-size:0.63rem; letter-spacing:0.2em; text-transform:uppercase; opacity:0.55; margin-bottom:3px; }
+.pill-ticker  { font-size:1.1rem; font-weight:700; color:var(--gold-light); letter-spacing:0.07em; }
+.pill-ytd-label { font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase; opacity:0.55; margin-bottom:2px; }
+.pill-ytd     { font-size:2.2rem; font-weight:700; color:#6fe083; letter-spacing:-0.02em; line-height:1; }
+
+/* ═══════════════════════════════════════
+   SECTOR LAYOUT
+   Columnas: Minería (58%) | Finanzas (31.7%) | Consumo (10.3%)
+═══════════════════════════════════════ */
+
+.sectors-row {
+  display: grid;
+  grid-template-columns: 58fr 31.7fr 10.3fr;
+  gap: 10px;
+  animation: fadeUp 0.7s 0.18s ease both;
+}
+
+/* ── Sector block ── */
+.sector-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sector-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-bottom: 7px;
+  padding-left: 3px;
+  border-left: 2px solid var(--gold);
+  padding-left: 8px;
+  opacity: 0.8;
+}
+
+/* ── Inner grid per sector ── */
+
+/* MINERÍA: SCCO(24.9) BVN(18.5) CVERDEC1(5.6) VOLCABC1(2.9) CPAC(2.2) */
+/* Two rows: top = SCCO + BVN side by side; bottom = CVERDEC1 + VOLCAN + CPAC */
+.mine-grid {
+  display: grid;
+  grid-template-columns: 24.9fr 18.5fr;
+  grid-template-rows: 240px 175px;
+  gap: 8px;
+}
+/* CVERDEC1, VOLCAN, CPAC span across bottom row together */
+.mine-bottom {
+  grid-column: 1 / span 2;
+  display: grid;
+  grid-template-columns: 5.6fr 2.9fr 2.2fr;
+  gap: 8px;
+}
+
+/* FINANZAS: BAP(15.9) IFS(7.0) INRETC1(9.9) */
+/* top row: BAP full width, bottom row: IFS + INRETC1 */
+.fin-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 240px 175px;
+  gap: 8px;
+}
+.fin-bottom {
+  display: grid;
+  grid-template-columns: 7fr 9.9fr;
+  gap: 8px;
+}
+
+/* CONSUMO: ALICORC1(7.8) */
+.cons-grid {
+  display: grid;
+  grid-template-rows: 240px 175px;
+  gap: 8px;
+}
+
+/* ── CELL ── */
+.cell {
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 10px 14px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  color: #ffffff;
+  transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s ease;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+.cell::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:42%;
+  background:linear-gradient(180deg,rgba(255,255,255,0.15) 0%,transparent 100%);
+  pointer-events:none;
+}
+.cell:hover { transform: translateY(-5px) scale(1.016); z-index:20; }
+
+/* text */
+.cell .c-sector {
+  font-size:0.58rem; letter-spacing:0.22em; text-transform:uppercase;
+  color:rgba(255,255,255,0.6); font-weight:700; margin-bottom:3px;
+}
+.cell .c-ticker {
+  font-size:0.85rem; font-weight:700; letter-spacing:0.12em;
+  color:rgba(255,255,255,0.82); margin-bottom:3px; text-transform:uppercase;
+}
+.cell .c-name {
+  font-size:0.92rem; font-weight:600; text-align:center;
+  line-height:1.25; margin-bottom:12px; color:#ffffff;
+}
+.cell .c-ytd {
+  font-size:2.55rem; font-weight:700; line-height:1;
+  color:#ffffff; letter-spacing:-0.02em;
+  text-shadow:0 2px 10px rgba(0,0,0,0.3);
+}
+.cell .c-weight {
+  margin-top:8px; font-size:0.66rem; color:rgba(255,255,255,0.6);
+  letter-spacing:0.1em; font-weight:600;
+  background:rgba(0,0,0,0.18); padding:3px 10px; border-radius:20px;
+}
+
+/* size mods */
+.cell.sm .c-name  { font-size:0.78rem; margin-bottom:8px; }
+.cell.sm .c-ytd   { font-size:2.0rem; }
+.cell.sm .c-ticker{ font-size:0.72rem; }
+
+.cell.xs .c-name   { font-size:0.68rem; margin-bottom:6px; }
+.cell.xs .c-ytd    { font-size:1.6rem; }
+.cell.xs .c-ticker { font-size:0.62rem; }
+.cell.xs .c-weight { font-size:0.56rem; }
+
+.cell.xxs .c-name   { font-size:0.6rem; margin-bottom:5px; }
+.cell.xxs .c-ytd    { font-size:1.3rem; }
+.cell.xxs .c-ticker { font-size:0.56rem; }
+.cell.xxs .c-weight { font-size:0.52rem; padding:2px 7px; }
+.cell.xxs .c-sector { display:none; }
+
+/* cell that fills full height */
+.cell-full { height:100%; }
+
+/* ── COLORS ── */
+.g1 { background:linear-gradient(150deg,#085f18 0%,#033c0d 100%); box-shadow:0 5px 25px rgba(5,70,15,0.6); }
+.g2 { background:linear-gradient(150deg,#138f2c 0%,#0a6a1e 100%); box-shadow:0 5px 22px rgba(14,120,35,0.55); }
+.g3 { background:linear-gradient(150deg,#38b84e 0%,#228c34 100%); box-shadow:0 5px 20px rgba(45,160,64,0.5); }
+.g4 { background:linear-gradient(150deg,#6ece80 0%,#4aad5c 100%); box-shadow:0 5px 18px rgba(90,190,110,0.45); }
+.g5 { background:linear-gradient(150deg,#9dd4a4 0%,#7aba84 100%); box-shadow:0 5px 15px rgba(140,200,150,0.4); }
+
+/* tooltip */
+.tip {
+  position:absolute; bottom:calc(100% + 10px); left:50%;
+  transform:translateX(-50%) translateY(4px);
+  background:#1a140d; color:#f0e8d0; font-size:0.7rem;
+  padding:7px 13px; border-radius:8px; white-space:nowrap;
+  pointer-events:none; opacity:0; transition:opacity 0.15s,transform 0.15s;
+  z-index:50; letter-spacing:0.05em; border:1px solid rgba(196,154,46,0.35);
+  box-shadow:0 4px 18px rgba(0,0,0,0.45);
+}
+.tip::after {
+  content:''; position:absolute; top:100%; left:50%;
+  transform:translateX(-50%); border:5px solid transparent; border-top-color:#1a140d;
+}
+.cell:hover .tip { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── BOTTOM ── */
+.bottom-bar {
+  display:flex; justify-content:space-between; align-items:center;
+  margin-top:18px; flex-wrap:wrap; gap:10px;
+  animation:fadeUp 0.7s 0.35s ease both;
+}
+.leg-title { font-size:0.63rem; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink-soft); font-weight:700; }
+.leg-items { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.leg-item  { display:flex; align-items:center; gap:6px; font-size:0.65rem; color:var(--ink-soft); letter-spacing:0.05em; }
+.leg-dot   { width:11px; height:11px; border-radius:3px; flex-shrink:0; }
+.footer {
+  text-align:center; margin-top:14px; font-size:0.62rem;
+  color:var(--ink-soft); letter-spacing:0.1em; opacity:0.65;
+  animation:fadeUp 0.7s 0.4s ease both;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeDown { from{opacity:0;transform:translateY(-16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeUp   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+@keyframes cellIn   { from{opacity:0;transform:scale(0.84)} to{opacity:1;transform:scale(1)} }
+
+.cell { animation:cellIn 0.55s ease both; }
+.cell:nth-child(1){animation-delay:0.20s}.cell:nth-child(2){animation-delay:0.27s}
+.cell:nth-child(3){animation-delay:0.34s}.cell:nth-child(4){animation-delay:0.41s}
+.cell:nth-child(5){animation-delay:0.48s}.cell:nth-child(6){animation-delay:0.55s}
+.cell:nth-child(7){animation-delay:0.62s}.cell:nth-child(8){animation-delay:0.69s}
+.cell:nth-child(9){animation-delay:0.76s}.cell:nth-child(10){animation-delay:0.83s}
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="eyebrow">Van Eck El Dorado · Bolsa de Valores de Lima · NYSE</div>
+    <h1>ETF<em>PERUD</em> · Mapa de Calor</h1>
+    <div class="sub">Retorno acumulado por acción · YTD al 27 de Febrero, 2026 · Agrupado por Sector y Peso</div>
+  </div>
+
+  <div class="rule-full"></div>
+
+  <!-- ETF PILL -->
+  <div class="etf-row">
+    <div class="etf-pill">
+      <div>
+        <div class="pill-label">Fondo total</div>
+        <div class="pill-ticker">ETFPERUD</div>
+      </div>
+      <div class="pill-divider"></div>
+      <div>
+        <div class="pill-ytd-label">Retorno YTD 2026</div>
+        <div class="pill-ytd">+31.46%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTOR LAYOUT -->
+  <div class="sectors-row">
+
+    <!-- ══ SECTOR: MINERÍA (58%) ══ -->
+    <div class="sector-block">
+      <div class="sector-label">⛏ Minería &nbsp;·&nbsp; 53.9% del fondo</div>
+      <div class="mine-grid">
+
+        <!-- SCCO 24.9% +48.06% -->
+        <div class="cell g1">
+          <div class="tip">Southern Copper · NYSE: SCCO · Peso 24.9%</div>
+          <span class="c-sector">Cobre</span>
+          <span class="c-ticker">SCCO</span>
+          <span class="c-name">Southern Copper Corp.</span>
+          <span class="c-ytd">+48.06%</span>
+          <span class="c-weight">Peso 24.9%</span>
+        </div>
+
+        <!-- BVN 18.5% +52.75% -->
+        <div class="cell g1">
+          <div class="tip">Cía. Minas Buenaventura · NYSE: BVN · Peso 18.5%</div>
+          <span class="c-sector">Oro & Plata</span>
+          <span class="c-ticker">BVN</span>
+          <span class="c-name">Cía. Minas Buenaventura</span>
+          <span class="c-ytd">+52.75%</span>
+          <span class="c-weight">Peso 18.5%</span>
+        </div>
+
+        <!-- BOTTOM ROW: CVERDEC1 + VOLCAN + CPAC -->
+        <div class="mine-bottom">
+
+          <!-- CVERDEC1 5.6% +26.53% -->
+          <div class="cell g2 sm">
+            <div class="tip">Soc. Minera Cerro Verde · BVL: CVERDEC1 · Peso 5.6%</div>
+            <span class="c-ticker">CVERDEC1</span>
+            <span class="c-name">Cerro Verde S.A.</span>
+            <span class="c-ytd">+26.53%</span>
+            <span class="c-weight">Peso 5.6%</span>
+          </div>
+
+          <!-- VOLCABC1 2.9% +8.11% -->
+          <div class="cell g4 xs">
+            <div class="tip">Volcán Cía. Minera · BVL: VOLCABC1 · Peso 2.9%</div>
+            <span class="c-ticker">VOLCABC1</span>
+            <span class="c-name">Volcán Cía. Minera</span>
+            <span class="c-ytd">+8.11%</span>
+            <span class="c-weight">Peso 2.9%</span>
+          </div>
+
+          <!-- CPAC 2.2% +3.51% -->
+          <div class="cell g5 xxs">
+            <div class="tip">Cementos Pacasmayo · NYSE: CPAC · Peso 2.2%</div>
+            <span class="c-ticker">CPAC</span>
+            <span class="c-name">Cementos Pacasmayo</span>
+            <span class="c-ytd">+3.51%</span>
+            <span class="c-weight">Peso 2.2%</span>
+          </div>
+
+        </div><!-- /mine-bottom -->
+      </div><!-- /mine-grid -->
+    </div><!-- /MINERÍA -->
+
+
+    <!-- ══ SECTOR: FINANZAS (31.7%) ══ -->
+    <div class="sector-block">
+      <div class="sector-label">🏦 Finanzas &nbsp;·&nbsp; 31.7% del fondo</div>
+      <div class="fin-grid">
+
+        <!-- BAP 15.9% +20.94% -->
+        <div class="cell g3">
+          <div class="tip">Credicorp Ltd. · NYSE: BAP · Peso 15.9%</div>
+          <span class="c-sector">Banca</span>
+          <span class="c-ticker">BAP</span>
+          <span class="c-name">Credicorp Ltd.</span>
+          <span class="c-ytd">+20.94%</span>
+          <span class="c-weight">Peso 15.9%</span>
+        </div>
+
+        <!-- BOTTOM: IFS + INRETC1 -->
+        <div class="fin-bottom">
+
+          <!-- IFS 7.0% +14.56% -->
+          <div class="cell g3 sm">
+            <div class="tip">Intercorp Financial · BVL: IFS · Peso 7.0%</div>
+            <span class="c-ticker">IFS</span>
+            <span class="c-name">Intercorp Financial</span>
+            <span class="c-ytd">+14.56%</span>
+            <span class="c-weight">Peso 7.0%</span>
+          </div>
+
+          <!-- INRETC1 9.9% +13.10% -->
+          <div class="cell g3 sm">
+            <div class="tip">InRetail Perú Corp. · BVL: INRETC1 · Peso 9.9%</div>
+            <span class="c-ticker">INRETC1</span>
+            <span class="c-name">InRetail Perú Corp.</span>
+            <span class="c-ytd">+13.10%</span>
+            <span class="c-weight">Peso 9.9%</span>
+          </div>
+
+        </div><!-- /fin-bottom -->
+      </div><!-- /fin-grid -->
+    </div><!-- /FINANZAS -->
+
+
+    <!-- ══ SECTOR: CONSUMO (7.8%) ══ -->
+    <div class="sector-block">
+      <div class="sector-label">🛒 Consumo &nbsp;·&nbsp; 7.8% del fondo</div>
+      <div class="cons-grid">
+
+        <!-- ALICORC1 7.8% +9.35% — ocupa ambas filas -->
+        <div class="cell g4 cell-full" style="grid-row:1/span 2; height:100%; min-height:423px;">
+          <div class="tip">Alicorp S.A. · BVL: ALICORC1 · Peso 7.8%</div>
+          <span class="c-sector">Consumo Masivo</span>
+          <span class="c-ticker">ALICORC1</span>
+          <span class="c-name">Alicorp S.A.</span>
+          <span class="c-ytd">+9.35%</span>
+          <span class="c-weight">Peso 7.8%</span>
+        </div>
+
+      </div><!-- /cons-grid -->
+    </div><!-- /CONSUMO -->
+
+  </div><!-- /sectors-row -->
+
+  <div class="rule-full"></div>
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar">
+    <span class="leg-title">Escala de retorno YTD →</span>
+    <div class="leg-items">
+      <div class="leg-item"><div class="leg-dot" style="background:linear-gradient(135deg,#085f18,#033c0d)"></div>&gt; +40%</div>
+      <div class="leg-item"><div class="leg-dot" style="background:linear-gradient(135deg,#138f2c,#0a6a1e)"></div>+25% a +40%</div>
+      <div class="leg-item"><div class="leg-dot" style="background:linear-gradient(135deg,#38b84e,#228c34)"></div>+15% a +25%</div>
+      <div class="leg-item"><div class="leg-dot" style="background:linear-gradient(135deg,#6ece80,#4aad5c)"></div>+5% a +15%</div>
+      <div class="leg-item"><div class="leg-dot" style="background:linear-gradient(135deg,#9dd4a4,#7aba84)"></div>0% a +5%</div>
+    </div>
+    <span class="leg-title">← Tamaño proporcional al peso en el fondo</span>
+  </div>
+
+  <div class="footer">
+    Fuente: TradingView · BVL · NYSE &nbsp;·&nbsp; Datos al cierre del 27 de Febrero, 2026 &nbsp;·&nbsp; Van Eck El Dorado Peru ETF (ETFPERUD) · Pesos al 20 Feb 2026
+  </div>
+
+</div>
+</body>
+</html>
