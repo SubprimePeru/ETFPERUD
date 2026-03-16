@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peruvian NYSE Stocks — Heatmap</title>
+<script>
+  const FINNHUB_KEY = "d6s3jphr01qrb5i8fv9gd6s3jphr01qrb5i8fva0";
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+  :root {
+    --bg:#0f0f0f; --bg2:#1a1a1a; --bg3:#232323;
+    --text:#f0ede8; --text2:#9a9690; --text3:#5a5754;
+    --border:rgba(255,255,255,0.10); --border2:rgba(255,255,255,0.20);
+    --radius:12px; --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;padding:2rem 1.5rem}
+  .page{max-width:900px;margin:0 auto}
+  .header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px}
+  .title{font-size:18px;font-weight:600;color:var(--text)}
+  .subtitle{font-size:12px;color:var(--text2);margin-top:4px;font-family:var(--mono)}
+  .pill{font-size:11px;font-family:var(--mono);padding:4px 10px;border-radius:20px;border:0.5px solid var(--border2);cursor:pointer;background:transparent;color:var(--text2);transition:all 0.15s;font-weight:500;letter-spacing:0.04em}
+  .pill:hover{border-color:rgba(255,255,255,0.38);color:var(--text)}
+  .pill.active{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .bar{display:flex;gap:6px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+  .bar-label{font-size:11px;color:var(--text3);font-family:var(--mono);letter-spacing:0.08em}
+  .seg{font-size:10px;font-family:var(--mono);padding:3px 10px;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;background:transparent;color:var(--text3);transition:all 0.15s;letter-spacing:0.04em}
+  .seg:hover{border-color:var(--border2);color:var(--text2)}
+  .seg.active{border-color:rgba(255,255,255,0.42);color:var(--text);background:var(--bg3)}
+  .treemap{width:100%;position:relative;border-radius:var(--radius);overflow:hidden}
+  .tile{position:absolute;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:10px 12px;transition:opacity 0.15s,filter 0.15s}
+  .tile:hover{filter:brightness(1.12)}
+  .tile.dimmed{opacity:0.2}
+  .tile-ticker{font-family:var(--mono);font-weight:600;letter-spacing:0.04em}
+  .tile-name{opacity:0.7;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile-perf{font-family:var(--mono);font-weight:600}
+  .tile-price{font-family:var(--mono);opacity:0.8}
+  .tile-mcap{font-family:var(--mono);opacity:0.55;font-size:10px}
+  .detail-bar{background:var(--bg2);border-radius:var(--radius);border:0.5px solid var(--border2);padding:14px 18px;margin-top:10px;display:none}
+  .detail-bar.show{display:block}
+  .detail-inner{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+  .dcol{display:flex;flex-direction:column;gap:3px;min-width:60px}
+  .dlbl{font-size:10px;color:var(--text3);font-family:var(--mono);letter-spacing:0.08em;text-transform:uppercase}
+  .dval{font-size:14px;font-weight:500;font-family:var(--mono);color:var(--text)}
+  .dclose{margin-left:auto;font-size:11px;cursor:pointer;color:var(--text3);font-family:var(--mono);align-self:flex-start}
+  .dclose:hover{color:var(--text2)}
+  .legend{display:flex;gap:6px;align-items:center;margin-top:1rem;flex-wrap:wrap}
+  .litem{display:flex;align-items:center;gap:5px;font-size:10px;font-family:var(--mono);color:var(--text2)}
+  .lswatch{width:20px;height:8px;border-radius:2px}
+  .loading-state{display:flex;align-items:center;gap:10px;padding:2rem 0;color:var(--text2);font-size:13px;font-family:var(--mono)}
+  .spinner{width:16px;height:16px;flex-shrink:0;border:1.5px solid var(--border2);border-top-color:var(--text);border-radius:50%;animation:spin 0.7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .notice{font-size:12px;font-family:var(--mono);padding:8px 14px;border-radius:8px;margin-bottom:12px;display:none}
+  .notice.warn{color:#e8a838;border:0.5px solid rgba(232,168,56,0.35);background:rgba(232,168,56,0.06)}
+  .notice.err{color:#e05c5c;border:0.5px solid rgba(224,92,92,0.35);background:rgba(224,92,92,0.06)}
+  .key-prompt{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:24px 28px;margin:1.5rem 0}
+  .key-prompt h2{font-size:14px;font-weight:500;margin-bottom:8px}
+  .key-prompt p{font-size:12px;color:var(--text2);font-family:var(--mono);line-height:1.75;margin-bottom:16px}
+  .key-prompt a{color:#e8a838;text-decoration:none}
+  .key-prompt a:hover{text-decoration:underline}
+  .key-row{display:flex;gap:8px;flex-wrap:wrap}
+  .key-input{flex:1;min-width:220px;background:var(--bg3);color:var(--text);border:0.5px solid var(--border2);border-radius:6px;padding:8px 12px;font-family:var(--mono);font-size:12px;outline:none}
+  .key-input:focus{border-color:rgba(255,255,255,0.4)}
+  .key-btn{padding:8px 20px;border-radius:6px;border:none;background:var(--text);color:var(--bg);font-family:var(--mono);font-size:12px;cursor:pointer;font-weight:600;white-space:nowrap}
+  .key-btn:hover{opacity:0.85}
+  footer{margin-top:2rem;font-size:11px;color:var(--text3);font-family:var(--mono);text-align:center;letter-spacing:0.04em}
+  footer a{color:var(--text3);text-decoration:none}
+  footer a:hover{color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="title">🇵🇪 Peruvian NYSE Stocks</div>
+      <div class="subtitle" id="ts-line">—</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap" id="sector-pills"></div>
+  </div>
+  <div class="bar">
+    <span class="bar-label">COLOR:</span>
+    <button class="seg active" data-c="change1y">1Y</button>
+    <button class="seg" data-c="changeYTD">YTD</button>
+    <button class="seg" data-c="change1d">1D</button>
+  </div>
+  <div id="notice" class="notice"></div>
+  <div id="key-prompt" class="key-prompt" style="display:none">
+    <h2>Agrega tu Finnhub API key</h2>
+    <p>Regístrate gratis en <a href="https://finnhub.io" target="_blank">finnhub.io</a> — sin tarjeta, sin límite diario.<br>
+    O edita el archivo y cambia <code>FINNHUB_KEY</code> al inicio del HTML.</p>
+    <div class="key-row">
+      <input class="key-input" id="key-input" type="text" placeholder="tu_api_key_aquí" />
+      <button class="key-btn" onclick="applyKey()">Cargar datos →</button>
+    </div>
+  </div>
+  <div id="loading-state" class="loading-state" style="display:none">
+    <div class="spinner"></div>
+    <span id="loading-msg">Cargando…</span>
+  </div>
+  <div id="main" style="display:none">
+    <div id="treemap" class="treemap"></div>
+    <div id="detail-bar" class="detail-bar"></div>
+    <div class="legend">
+      <span class="litem"><span class="lswatch" style="background:#1a6b3c"></span>&gt;+20%</span>
+      <span class="litem"><span class="lswatch" style="background:#2a9d5c"></span>+10–20%</span>
+      <span class="litem"><span class="lswatch" style="background:#5ab580"></span>0–10%</span>
+      <span class="litem"><span class="lswatch" style="background:#c0392b"></span>-10–0%</span>
+      <span class="litem"><span class="lswatch" style="background:#922b21"></span>-20–-10%</span>
+      <span class="litem"><span class="lswatch" style="background:#6b1c14"></span>&lt;-20%</span>
+      <span class="litem" style="margin-left:10px;color:#5a5754">area = market cap</span>
+    </div>
+  </div>
+  <footer>data via <a href="https://finnhub.io" target="_blank">Finnhub</a> free API · NYSE · precios con delay ~15 min</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const STOCKS = [
+  {ticker:"BAP", name:"Credicorp",          sector:"Financials",   mcapFallback:11.8e9, desc:"Banking & insurance"},
+  {ticker:"IFS", name:"Intercorp Financial", sector:"Financials",   mcapFallback:1.9e9,  desc:"Financial services"},
+  {ticker:"BVN", name:"Buenaventura",        sector:"Mining",       mcapFallback:2.3e9,  desc:"Gold & silver mining"},
+  {ticker:"CPAC",name:"Cementos Pacasmayo", sector:"Materials",    mcapFallback:0.38e9, desc:"Cement & concrete"},
+  {ticker:"AENZ",name:"Aenza SAA",          sector:"Construction", mcapFallback:0.16e9, desc:"Engineering & construction"}
+];
+const SECTORS = ["All", ...new Set(STOCKS.map(s => s.sector))];
+
+let activeFilter = "All", colorBy = "change1y", stockData = {}, selectedTicker = null;
+let apiKey = FINNHUB_KEY;
+
+function getColor(p) {
+  if (p >= 20)  return {bg:"#1a6b3c",text:"#c5f5d8"};
+  if (p >= 10)  return {bg:"#2a9d5c",text:"#d4fde8"};
+  if (p >= 0)   return {bg:"#5ab580",text:"#e8fff3"};
+  if (p >= -10) return {bg:"#c0392b",text:"#fde8e8"};
+  if (p >= -20) return {bg:"#922b21",text:"#fdddd8"};
+  return               {bg:"#6b1c14",text:"#fcd5cf"};
+}
+function pct(v) { return (v >= 0 ? "+" : "") + v.toFixed(2) + "%"; }
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function renderPills() {
+  document.getElementById("sector-pills").innerHTML = SECTORS.map(s =>
+    `<button class="pill${activeFilter===s?" active":""}" onclick="setFilter('${s}')">${s}</button>`
+  ).join("");
+}
+function setFilter(s) { activeFilter = s; renderPills(); draw(); }
+
+document.querySelectorAll(".seg").forEach(b => b.addEventListener("click", () => {
+  colorBy = b.dataset.c;
+  document.querySelectorAll(".seg").forEach(x => x.classList.toggle("active", x.dataset.c === colorBy));
+  draw();
+}));
+
+function draw() {
+  const wrap = document.getElementById("treemap");
+  const W = wrap.parentElement.offsetWidth || 700;
+  const items = STOCKS
+    .filter(s => activeFilter === "All" || s.sector === activeFilter)
+    .map(s => ({...s, ...(stockData[s.ticker] || {})}))
+    .filter(s => s.price);
+
+  if (!items.length) { wrap.innerHTML = ""; return; }
+
+  const H = Math.max(240, Math.round(W * 0.44));
+  wrap.style.height = H + "px";
+
+  const root = d3.hierarchy({children: items}).sum(d => d.marketCap || d.mcapFallback || 1e9);
+  d3.treemap().size([W, H]).padding(3).round(true)(root);
+
+  wrap.innerHTML = "";
+  root.leaves().forEach(node => {
+    const s = node.data;
+    const w = node.x1 - node.x0, h = node.y1 - node.y0;
+    const pVal = s[colorBy] ?? 0;
+    const c = getColor(pVal);
+    const dimmed = selectedTicker && selectedTicker !== s.ticker ? " dimmed" : "";
+    const tile = document.createElement("div");
+    tile.className = "tile" + dimmed;
+    tile.style.cssText = `left:${node.x0}px;top:${node.y0}px;width:${w}px;height:${h}px;background:${c.bg};color:${c.text}`;
+    const big = w > 130 && h > 90, med = w > 75 && h > 55, tiny = w < 55 || h < 45;
+    const sign = pVal >= 0 ? "+" : "";
+    const mcapStr = s.marketCap
+      ? (s.marketCap >= 1e9 ? "$"+(s.marketCap/1e9).toFixed(1)+"B" : "$"+(s.marketCap/1e6).toFixed(0)+"M") : "";
+    if (tiny) {
+      tile.innerHTML = `<span style="font-family:var(--mono);font-weight:600;font-size:${Math.min(12,w*0.18)}px">${s.ticker}</span>`;
+    } else if (big) {
+      tile.innerHTML = `<div>
+          <div class="tile-ticker" style="font-size:18px">${s.ticker}</div>
+          <div class="tile-name" style="font-size:11px">${s.name}</div>
+        </div>
+        <div>
+          <div class="tile-perf" style="font-size:20px">${sign}${pVal.toFixed(1)}%</div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px">
+            <div class="tile-mcap">${mcapStr}</div>
+            <div class="tile-price" style="font-size:12px">$${(s.price||0).toFixed(2)}</div>
+          </div>
+        </div>`;
+    } else if (med) {
+      tile.innerHTML = `<div class="tile-ticker" style="font-size:13px">${s.ticker}</div>
+        <div>
+          <div class="tile-perf" style="font-size:14px">${sign}${pVal.toFixed(1)}%</div>
+          <div class="tile-price" style="font-size:11px">$${(s.price||0).toFixed(2)}</div>
+        </div>`;
+    } else {
+      tile.innerHTML = `<div class="tile-ticker" style="font-size:12px">${s.ticker}</div>
+        <div class="tile-perf" style="font-size:12px">${sign}${pVal.toFixed(1)}%</div>`;
+    }
+    tile.onclick = () => selectTile(s.ticker);
+    wrap.appendChild(tile);
+  });
+}
+
+function selectTile(ticker) {
+  selectedTicker = selectedTicker === ticker ? null : ticker;
+  selectedTicker ? showDetail(ticker) : hideDetail();
+  draw();
+}
+
+function showDetail(ticker) {
+  const s = STOCKS.find(x => x.ticker === ticker);
+  const d = stockData[ticker];
+  if (!s || !d) return;
+  const bar = document.getElementById("detail-bar");
+  bar.className = "detail-bar show";
+  const pos = v => v >= 0 ? "#2a9d5c" : "#e05c5c";
+  const mcapStr = d.marketCap
+    ? (d.marketCap >= 1e9 ? "$"+(d.marketCap/1e9).toFixed(2)+"B" : "$"+(d.marketCap/1e6).toFixed(0)+"M") : "—";
+  bar.innerHTML = `<div class="detail-inner">
+    <div class="dcol"><div class="dlbl">Company</div><div class="dval" style="font-size:13px">${s.name}</div></div>
+    <div class="dcol"><div class="dlbl">Sector</div><div class="dval" style="font-size:13px">${s.sector}</div></div>
+    <div class="dcol"><div class="dlbl">Price</div><div class="dval">$${d.price.toFixed(2)}</div></div>
+    <div class="dcol"><div class="dlbl">Mkt Cap</div><div class="dval">${mcapStr}</div></div>
+    <div class="dcol"><div class="dlbl">1-Year</div><div class="dval" style="color:${pos(d.change1y)}">${pct(d.change1y)}</div></div>
+    <div class="dcol"><div class="dlbl">YTD</div><div class="dval" style="color:${pos(d.changeYTD)}">${pct(d.changeYTD)}</div></div>
+    <div class="dcol"><div class="dlbl">1-Day</div><div class="dval" style="color:${pos(d.change1d)}">${pct(d.change1d)}</div></div>
+    <div class="dcol"><div class="dlbl">Focus</div><div class="dval" style="font-size:12px">${s.desc}</div></div>
+    <div class="dclose" onclick="selectTile('${ticker}')">✕</div>
+  </div>`;
+}
+function hideDetail() { document.getElementById("detail-bar").className = "detail-bar"; }
+
+/* ─────────────────────────────────────────────────────
+   FINNHUB API — FREE TIER
+   https://finnhub.io/docs/api
+
+   FIX: fetch each stock's 3 endpoints SEQUENTIALLY
+   (not parallel) to avoid hitting the 60 req/min cap.
+   With 5 stocks × 3 endpoints = 15 calls, a burst of
+   simultaneous requests triggers "Failed to fetch".
+   We add a 350ms gap between each call.
+───────────────────────────────────────────────────── */
+const BASE = "https://finnhub.io/api/v1";
+
+// When opened as a local file (file://) browsers block external fetch calls.
+// We route through a CORS proxy in that case so the file works both locally
+// and when hosted online.
+const IS_LOCAL = location.protocol === "file:";
+const PROXY    = "https://corsproxy.io/?";
+
+async function fh(path) {
+  const sep = path.includes("?") ? "&" : "?";
+  const url = `${BASE}${path}${sep}token=${apiKey}`;
+  const finalUrl = IS_LOCAL ? PROXY + encodeURIComponent(url) : url;
+  const r = await fetch(finalUrl);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+
+function unixDaysAgo(days) {
+  return Math.floor((Date.now() - days * 86400000) / 1000);
+}
+
+async function fetchOne(s) {
+  const now     = Math.floor(Date.now() / 1000);
+  const from1y  = unixDaysAgo(380);
+  const fromYTD = Math.floor(new Date(new Date().getFullYear(), 0, 2).getTime() / 1000);
+
+  // Sequential calls with breathing room between each
+  const quote = await fh(`/quote?symbol=${s.ticker}`);
+  await wait(350);
+  const candles = await fh(`/stock/candle?symbol=${s.ticker}&resolution=D&from=${from1y}&to=${now}`);
+  await wait(350);
+  const profile = await fh(`/stock/profile2?symbol=${s.ticker}`);
+
+  const price = quote.c;
+  const dp1d  = quote.dp ?? 0; // Finnhub gives daily % directly on /quote
+
+  let change1y = 0, changeYTD = 0;
+  if (candles.s === "ok" && candles.c?.length > 1) {
+    const closes = candles.c, times = candles.t;
+    const old = closes[0];
+    change1y = old ? ((price - old) / old) * 100 : 0;
+    const yi = times.findIndex(t => t >= fromYTD);
+    if (yi >= 0) {
+      const base = closes[yi];
+      changeYTD = base ? ((price - base) / base) * 100 : 0;
+    }
+  }
+
+  const marketCap = profile.marketCapitalization
+    ? profile.marketCapitalization * 1e6 // Finnhub returns value in $M
+    : s.mcapFallback;
+
+  return {price, change1d: dp1d, change1y, changeYTD, marketCap};
+}
+
+async function loadAll(key) {
+  apiKey = key;
+  clearNotice();
+  showMain(); // show empty canvas right away
+
+  let loaded = 0;
+  for (let i = 0; i < STOCKS.length; i++) {
+    const s = STOCKS[i];
+    setLoading(true, `Cargando ${s.ticker}… (${i+1}/${STOCKS.length})`);
+    try {
+      stockData[s.ticker] = await fetchOne(s);
+      loaded++;
+      draw(); // paint each tile as it arrives
+    } catch(e) {
+      console.warn(s.ticker, e.message);
+      const isAuth = e.message.includes("401") || e.message.includes("403");
+      if (isAuth) {
+        setLoading(false);
+        showNotice("API key inválida — verifica en finnhub.io/dashboard", "err");
+        document.getElementById("key-prompt").style.display = "block";
+        return;
+      }
+      // non-auth errors: skip this ticker and continue
+    }
+    if (i < STOCKS.length - 1) await wait(500); // gap between stocks
+  }
+
+  setLoading(false);
+
+  if (loaded === 0) {
+    showNotice("No se pudieron obtener datos. Revisa tu conexión a internet.", "err");
+    return;
+  }
+
+  document.getElementById("ts-line").textContent =
+    "Live via Finnhub · NYSE · " + new Date().toLocaleTimeString("en-US", {hour:"2-digit", minute:"2-digit"});
+  draw();
+}
+
+function setLoading(on, msg) {
+  const el = document.getElementById("loading-state");
+  el.style.display = on ? "flex" : "none";
+  if (msg) document.getElementById("loading-msg").textContent = msg;
+}
+function showNotice(msg, type) {
+  const el = document.getElementById("notice");
+  el.textContent = msg; el.className = "notice " + type; el.style.display = "block";
+}
+function clearNotice() { document.getElementById("notice").style.display = "none"; }
+function showMain() {
+  document.getElementById("main").style.display = "block";
+  document.getElementById("key-prompt").style.display = "none";
+  renderPills(); draw();
+  window.addEventListener("resize", draw);
+}
+function applyKey() {
+  const k = document.getElementById("key-input").value.trim();
+  if (!k) { showNotice("Ingresa una API key.", "warn"); return; }
+  loadAll(k);
+}
+
+renderPills();
+if (!apiKey || apiKey === "YOUR_FINNHUB_KEY_HERE") {
+  document.getElementById("key-prompt").style.display = "block";
+  document.getElementById("ts-line").textContent = "Esperando API key…";
+} else {
+  loadAll(apiKey);
+}
+</script>
+</body>
+</html>
